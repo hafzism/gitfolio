@@ -1,4 +1,5 @@
 import PortfolioView from './PortfolioView';
+import prisma from '@/lib/prisma';
 
 // Language colors map for dots
 const LANG_COLORS = {
@@ -29,47 +30,43 @@ const LANG_COLORS = {
   Jupyter: '#DA5B0B',
 };
 
+async function getPortfolio(slug) {
+  try {
+    const raw = await prisma.portfolio.findUnique({ where: { slug } });
+    if (!raw) return null;
+    return {
+      ...raw,
+      skills: JSON.parse(raw.skills || '[]'),
+      projects: JSON.parse(raw.projects || '[]'),
+      stats: JSON.parse(raw.stats || '{}'),
+      experience: JSON.parse(raw.experience || '{}'),
+    };
+  } catch (err) {
+    console.error('Failed to fetch portfolio from DB:', err);
+    return null;
+  }
+}
+
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  const data = await getPortfolio(slug);
 
-  try {
-    const res = await fetch(`${baseUrl}/api/portfolio/${slug}`, {
-      cache: 'no-store',
-    });
-    if (!res.ok) {
-      return { title: 'Portfolio Not Found — Gitfolio' };
-    }
-    const data = await res.json();
-    return {
-      title: `${data.name} — Developer Portfolio | Gitfolio`,
-      description: data.headline || `${data.name}'s developer portfolio generated from GitHub`,
-      openGraph: {
-        title: `${data.name} — Developer Portfolio`,
-        description: data.headline || `Check out ${data.name}'s developer portfolio`,
-        images: data.avatarUrl ? [{ url: data.avatarUrl }] : [],
-      },
-    };
-  } catch {
-    return { title: 'Portfolio — Gitfolio' };
-  }
+  if (!data) return { title: 'Portfolio Not Found — Gitfolio' };
+
+  return {
+    title: `${data.name} — Developer Portfolio | Gitfolio`,
+    description: data.headline || `${data.name}'s developer portfolio generated from GitHub`,
+    openGraph: {
+      title: `${data.name} — Developer Portfolio`,
+      description: data.headline || `Check out ${data.name}'s developer portfolio`,
+      images: data.avatarUrl ? [{ url: data.avatarUrl }] : [],
+    },
+  };
 }
 
 export default async function PortfolioPage({ params }) {
   const { slug } = await params;
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-
-  let portfolio = null;
-  try {
-    const res = await fetch(`${baseUrl}/api/portfolio/${slug}`, {
-      cache: 'no-store',
-    });
-    if (res.ok) {
-      portfolio = await res.json();
-    }
-  } catch (err) {
-    console.error('Failed to fetch portfolio:', err);
-  }
+  const portfolio = await getPortfolio(slug);
 
   return <PortfolioView portfolio={portfolio} langColors={LANG_COLORS} />;
 }

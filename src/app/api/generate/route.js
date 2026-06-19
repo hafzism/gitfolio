@@ -27,46 +27,38 @@ export async function POST(request) {
       );
     }
 
-    // 2. Generate AI content
+    // 2. Generate AI content (headline, bio, skills only — no projectDescriptions)
     let aiContent;
     try {
       aiContent = await generatePortfolioContent(githubData);
     } catch (err) {
       console.error('AI generation error:', err);
-      // Fallback if AI fails
+      // Fallback if AI fails — use GitHub data directly
       aiContent = {
         headline: `${githubData.profile.name || cleanUsername} — Software Developer`,
-        bio: githubData.profile.bio || 'A passionate software developer.',
+        bio: githubData.profile.bio || 'A passionate software developer building great things.',
         skills: githubData.languages.map(l => l.language),
-        projectDescriptions: {},
       };
     }
 
-    // 3. Merge AI content with GitHub data to build portfolio
+    // 3. Build projects using GitHub descriptions directly (no AI generation per project)
+    // Users can use the "AI Enhance" button on their project descriptions themselves.
     const projects = githubData.repos.map((repo, idx) => ({
       name: repo.name,
-      description: aiContent.projectDescriptions?.[repo.name] || repo.description || '',
+      description: repo.description || '',  // raw GitHub description — user edits this
       url: repo.url,
       homepage: repo.homepage,
       language: repo.language,
       stars: repo.stars,
       forks: repo.forks,
       topics: repo.topics,
-      featured: idx < 6, // default to top 6 projects
+      featured: idx < 6, // default top 6 as featured
     }));
 
     // 4. Build the slug
     const slug = cleanUsername.toLowerCase();
 
-    // 5. Identify missing fields
-    const missingFields = [];
-    if (!githubData.profile.name) missingFields.push('name');
-    if (!githubData.profile.email) missingFields.push('email');
-    if (!githubData.profile.location) missingFields.push('location');
-    if (!githubData.profile.blog) missingFields.push('website');
-    if (!githubData.profile.twitter) missingFields.push('twitter');
-
-    // 6. Create or update portfolio in DB
+    // 5. Create or update portfolio in DB
     const portfolioData = {
       slug,
       githubUsername: cleanUsername,
@@ -99,7 +91,6 @@ export async function POST(request) {
 
     return NextResponse.json({
       portfolio,
-      missingFields,
       slug,
     });
   } catch (err) {

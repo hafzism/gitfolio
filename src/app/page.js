@@ -8,8 +8,8 @@ const LOADING_STEPS = [
   'Fetching GitHub profile...',
   'Analyzing repositories...',
   'Extracting skills & languages...',
-  'AI is crafting your portfolio...',
-  'Polishing the final result...',
+  'Crafting your headline & bio...',
+  'Saving your portfolio...',
 ];
 
 export default function Home() {
@@ -49,13 +49,8 @@ export default function Home() {
       }
 
       clearInterval(stepInterval);
-
-      // If there are missing fields, go to edit page with a flag
-      if (data.missingFields?.length > 0) {
-        router.push(`/edit/${data.slug}?complete=true`);
-      } else {
-        router.push(`/portfolio/${data.slug}`);
-      }
+      // Always go directly to the portfolio view
+      router.push(`/portfolio/${data.slug}`);
     } catch (err) {
       clearInterval(stepInterval);
       setError(err.message);
@@ -178,10 +173,10 @@ export default function Home() {
               <div className={`${styles.featureIcon} ${styles.featureIconGreen}`}>
                 🤖
               </div>
-              <h3>AI-Written Content</h3>
+              <h3>AI-Written Bio & Skills</h3>
               <p>
-                Groq AI crafts your bio, project descriptions, and skill 
-                summaries — making you sound as great as your code.
+                Groq AI crafts your headline, bio, and skills list.
+                You can enhance project descriptions anytime with one click.
               </p>
             </div>
             <div className={`card ${styles.featureCard}`}>

@@ -5,66 +5,56 @@ const groq = new Groq({
 });
 
 /**
- * Use Groq AI to generate polished portfolio content from GitHub data.
+ * Use Groq AI to generate polished headline, bio, and skills.
+ * Project descriptions are intentionally excluded — users write those themselves
+ * and can use the "AI Rewrite" button per-project on the edit page.
  */
 export async function generatePortfolioContent(githubData) {
   const { profile, repos, languages, topics, orgs, stats } = githubData;
 
-  const prompt = `You are a professional portfolio writer for software developers. Based on the following GitHub data, generate polished portfolio content.
+  const prompt = `You are a professional portfolio writer for software developers.
+Based on the GitHub data below, generate portfolio content as valid JSON.
 
-## GitHub Profile Data:
+GitHub Data:
 - Username: ${profile.login}
 - Name: ${profile.name || 'Not provided'}
 - Bio: ${profile.bio || 'Not provided'}
 - Location: ${profile.location || 'Not provided'}
 - Company: ${profile.company || 'Not provided'}
-- Blog/Website: ${profile.blog || 'Not provided'}
-- Twitter: ${profile.twitter || 'Not provided'}
 - Account Age: ${stats.accountAge} years
 - Public Repos: ${stats.totalRepos}
 - Total Stars: ${stats.totalStars}
-- Total Forks: ${stats.totalForks}
 - Followers: ${stats.followers}
 
-## Top Languages:
-${languages.slice(0, 10).map(l => `- ${l.language} (${l.count} repos)`).join('\n')}
+Top Languages: ${languages.slice(0, 8).map(l => `${l.language}`).join(', ')}
+Topics: ${topics.slice(0, 10).join(', ') || 'None'}
+Organizations: ${orgs.map(o => o.login).join(', ') || 'None'}
+Top Repos: ${repos.slice(0, 6).map(r => r.name).join(', ')}
 
-## Top Topics/Tags:
-${topics.slice(0, 15).join(', ') || 'None'}
-
-## Organizations:
-${orgs.map(o => o.login).join(', ') || 'None'}
-
-## Top Repositories:
-${repos.slice(0, 8).map(r => `- ${r.name}: ${r.description || 'No description'} (⭐${r.stars}, ${r.language || 'Various'})`).join('\n')}
-
-Generate a JSON response with EXACTLY this structure (no markdown, no code fences, just pure JSON):
+Return ONLY a JSON object with these three fields:
 {
-  "headline": "A compelling one-line headline/tagline for this developer (max 80 chars, no quotes around it)",
-  "bio": "A professional 2-3 paragraph bio written in first person. Make it engaging, highlight their strengths based on the data. If they have a bio, expand on it. If not, craft one from their repos and activity. Include what technologies they work with and what kind of developer they are.",
-  "skills": ["skill1", "skill2", "..."],
-  "projectDescriptions": {
-    "repo_name": "A polished 1-2 sentence description for this project. If the repo already has a description, enhance it. If not, infer from the name and language."
-  }
+  "headline": "one-line tagline under 80 characters",
+  "bio": "two-sentence professional bio in third person, no apostrophes",
+  "skills": ["skill1", "skill2", "skill3"]
 }
 
-For skills: Extract from languages, topics, and repo names/descriptions. Include frameworks, tools, and technologies. Aim for 10-20 skills, ordered by relevance.
-
-For projectDescriptions: Provide enhanced descriptions for each of these repos: ${repos.slice(0, 8).map(r => r.name).join(', ')}
-
-Make the content sound professional but approachable. Avoid generic filler text.`;
+Rules:
+- headline must be a JSON string (quoted, no special chars)
+- bio must be a JSON string with NO apostrophes (use words like "does not" instead of "doesnt")
+- skills should have 8 to 15 items
+- Output raw JSON only, no markdown, no code fences`;
 
   const completion = await groq.chat.completions.create({
     messages: [{ role: 'user', content: prompt }],
     model: 'llama-3.3-70b-versatile',
-    temperature: 0.7,
-    max_tokens: 2000,
+    temperature: 0.5,
+    max_tokens: 800,
     response_format: { type: 'json_object' },
   });
 
   const content = completion.choices[0]?.message?.content;
   if (!content) {
-    throw new Error('Failed to generate content from Groq AI');
+    throw new Error('No content returned from Groq AI');
   }
 
   try {
