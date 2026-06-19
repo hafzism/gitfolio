@@ -8,8 +8,17 @@
     "start": "next start"
   },
   "dependencies": {
+    "@prisma/adapter-better-sqlite3": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "better-sqlite3": "^12.11.1",
+    "groq-sdk": "^1.2.1",
     "next": "16.2.9",
+    "prisma": "^7.8.0",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "uuid": "^14.0.0"
+  },
+  "devDependencies": {
+    "uipro-cli": "^2.2.3"
   }
 }

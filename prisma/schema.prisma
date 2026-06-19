@@ -1,0 +1,39 @@
+// Gitfolio - Portfolio database schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Portfolio {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  githubUsername  String
+
+  // Hero section
+  name           String
+  avatarUrl      String?
+  headline       String?
+  bio            String?
+  location       String?
+
+  // Contact & Socials
+  email          String?
+  website        String?
+  twitter        String?
+  linkedin       String?
+  githubUrl      String?
+
+  // JSON fields stored as text
+  skills         String?  // JSON array of skill strings
+  projects       String?  // JSON array of project objects
+  stats          String?  // JSON object with GitHub stats
+  experience     String?  // JSON array of experience/contributions
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
