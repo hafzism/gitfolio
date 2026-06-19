@@ -11,8 +11,20 @@ const globalForPrisma = globalThis;
 let prisma;
 
 if (!globalForPrisma.prisma) {
-  const connectionString = process.env.DATABASE_URL;
+  let connectionString = process.env.DATABASE_URL;
+  
   if (connectionString) {
+    // Strip accidental leading/trailing single or double quotes
+    connectionString = connectionString.trim().replace(/^["']|["']$/g, '');
+    
+    // Log connection attempt (hiding credentials)
+    try {
+      const parsed = new URL(connectionString);
+      console.log(`[Prisma] Connecting to database host: ${parsed.host}, database: ${parsed.pathname}`);
+    } catch {
+      console.log(`[Prisma] Connecting with connection string of length: ${connectionString.length}`);
+    }
+
     const pool = new Pool({ connectionString });
     const adapter = new PrismaNeon(pool);
     globalForPrisma.prisma = new PrismaClient({ adapter });
