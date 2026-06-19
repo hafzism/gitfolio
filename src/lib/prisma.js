@@ -1,17 +1,32 @@
 import { PrismaClient } from '../generated/prisma/client';
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import { PrismaNeon } from '@prisma/adapter-neon';
+import ws from 'ws';
+
+// Set up WebSocket support for Node.js environments
+neonConfig.webSocketConstructor = ws;
 
 const globalForPrisma = globalThis;
 
 let prisma;
 
 if (!globalForPrisma.prisma) {
-  // Extract file path from connection string. Usually "file:./dev.db" or relative path.
-  const dbUrl = process.env.DATABASE_URL || "file:./dev.db";
-  const adapter = new PrismaBetterSqlite3({
-    url: dbUrl,
-  });
-  globalForPrisma.prisma = new PrismaClient({ adapter });
+  const connectionString = process.env.DATABASE_URL;
+  if (connectionString) {
+    const pool = new Pool({ connectionString });
+    const adapter = new PrismaNeon(pool);
+    globalForPrisma.prisma = new PrismaClient({ adapter });
+  } else {
+    console.warn("Warning: DATABASE_URL environment variable is missing. Prisma Client initialized in fallback mode.");
+    globalForPrisma.prisma = new PrismaClient({
+      adapter: {
+        queryRaw: async () => { throw new Error("DATABASE_URL is missing"); },
+        executeRaw: async () => { throw new Error("DATABASE_URL is missing"); },
+        model: {},
+        provider: "postgresql",
+      }
+    });
+  }
 }
 prisma = globalForPrisma.prisma;
 
