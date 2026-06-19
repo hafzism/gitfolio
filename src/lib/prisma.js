@@ -1,5 +1,5 @@
 import { PrismaClient } from '../generated/prisma/client';
-import { Pool, neonConfig } from '@neondatabase/serverless';
+import { neonConfig } from '@neondatabase/serverless';
 import { PrismaNeon } from '@prisma/adapter-neon';
 import ws from 'ws';
 
@@ -12,11 +12,11 @@ let prisma;
 
 if (!globalForPrisma.prisma) {
   let connectionString = process.env.DATABASE_URL;
-  
+
   if (connectionString) {
     // Strip accidental leading/trailing single or double quotes
     connectionString = connectionString.trim().replace(/^["']|["']$/g, '');
-    
+
     // Log connection attempt (hiding credentials)
     try {
       const parsed = new URL(connectionString);
@@ -25,21 +25,16 @@ if (!globalForPrisma.prisma) {
       console.log(`[Prisma] Connecting with connection string of length: ${connectionString.length}`);
     }
 
-    const pool = new Pool({ connectionString });
-    const adapter = new PrismaNeon(pool);
+    // PrismaNeon is a factory — pass the config object directly (not a Pool instance).
+    // The factory internally creates its own Pool using this config.
+    const adapter = new PrismaNeon({ connectionString, webSocketConstructor: ws });
     globalForPrisma.prisma = new PrismaClient({ adapter });
   } else {
-    console.warn("Warning: DATABASE_URL environment variable is missing. Prisma Client initialized in fallback mode.");
-    globalForPrisma.prisma = new PrismaClient({
-      adapter: {
-        queryRaw: async () => { throw new Error("DATABASE_URL is missing"); },
-        executeRaw: async () => { throw new Error("DATABASE_URL is missing"); },
-        model: {},
-        provider: "postgresql",
-      }
-    });
+    console.warn('[Prisma] Warning: DATABASE_URL is not set. All database calls will throw.');
+    globalForPrisma.prisma = new PrismaClient();
   }
 }
+
 prisma = globalForPrisma.prisma;
 
 export default prisma;
